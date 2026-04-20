@@ -2,11 +2,11 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Gra w Truciznę - P2P</title>
+    <title>Gra w Truciznę - Globalna Sieć</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: 'Courier New', Courier, monospace; background: #000; color: #0f0; max-width: 800px; margin: 20px auto; padding: 20px; border: 2px solid #0f0; }
-        h1, h2, h3 { border-bottom: 1px dashed #0f0; padding-bottom: 10px; margin-top: 0; }
+        h1, h2, h3, h4 { border-bottom: 1px dashed #0f0; padding-bottom: 10px; margin-top: 0; }
         input[type="text"], input[type="text"]:disabled { background: #111; color: #0f0; border: 1px solid #0f0; padding: 8px; width: 90%; font-family: inherit; margin: 5px 0;}
         button { background: #0f0; color: #000; border: 1px solid #0f0; padding: 10px 15px; margin: 10px 5px 10px 0; font-family: inherit; font-weight: bold; cursor: pointer; }
         button:hover { background: #000; color: #0f0; }
@@ -26,9 +26,13 @@
         .msg-op { color: #ff0; }
         .msg-sys { color: #f00; font-weight: bold; }
         
-        /* Opcje kubków */
+        /* Opcje kubków i Rangi */
         .cup-option { display: inline-block; border: 1px dashed #0f0; padding: 10px; margin: 10px 10px 10px 0; cursor: pointer; }
         .cup-option.selected { background: #0f0; color: #000; font-weight: bold; }
+        .rank-btn { width: 100%; text-align: left; margin-bottom: 5px; }
+        
+        .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite; }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
     </style>
 </head>
 <body>
@@ -36,15 +40,28 @@
     <div id="status">[ OFFLINE ] WYNIKI - Ty: 0 | Przeciwnik: 0</div>
 
     <div id="lobby-panel" class="panel">
-        <h3>> NAWIĄZYWANIE POŁĄCZENIA</h3>
         <div id="disconnect-msg" class="alert error hidden"></div>
-        <p>1. Możesz założyć stół (Host) i podać kod koledze, albo dołączyć do istniejącego.</p>
-        <button onclick="createRoom()">[ STWÓRZ POKÓJ ]</button>
-        <div id="host-info" class="hidden">
-            <p>Twój kod dostępu: <strong id="room-id" style="font-size: 1.5em; color: #ff0;"></strong></p>
-            <p>Czekam na przeciwnika...</p>
+        
+        <h3>> TRYB RANKINGOWY (DOBIERANIE GRACZY)</h3>
+        <p>Wybierz poziom przeciwników. System przeszuka globalną sieć.</p>
+        <button class="rank-btn" onclick="searchRank(1)">[ RANGA 1 ] Świeżaki i nowicjusze</button>
+        <button class="rank-btn" onclick="searchRank(2)">[ RANGA 2 ] Amatorzy dedukcji</button>
+        <button class="rank-btn" onclick="searchRank(3)">[ RANGA 3 ] Doświadczeni psychologowie</button>
+        <button class="rank-btn" onclick="searchRank(4)">[ RANGA 4 ] Bezwzględni mistrzowie gry</button>
+        
+        <div id="queue-status" class="alert hidden" style="color:#ff0; margin-top:10px;">
+            <span id="queue-text">Szukam przeciwnika</span><span class="loading-dots"></span><br>
+            <button onclick="cancelSearch()" style="background:#f00; color:#fff; padding:5px; margin-top:10px;">[ PRZERWIJ ]</button>
         </div>
-        <hr style="border-color:#0f0; border-style:dashed;">
+
+        <hr style="border-color:#0f0; border-style:dashed; margin: 20px 0;">
+
+        <h3>> GRA PRYWATNA (ZE ZNAJOMYM)</h3>
+        <button onclick="createRoom()">[ STWÓRZ POKÓJ ]</button>
+        <div id="host-info" class="hidden" style="margin: 10px 0;">
+            Twój kod dostępu: <strong id="room-id" style="font-size: 1.5em; color: #ff0;"></strong><br>Czekam na przeciwnika...
+        </div>
+        <br>
         <input type="text" id="join-id" placeholder="Wpisz kod pokoju znajomego..." style="width: 50%;">
         <button onclick="joinRoom()">[ DOŁĄCZ ]</button>
     </div>
@@ -63,8 +80,7 @@
         
         <div id="action-area">
             <p id="question-text">Wybierz kubek:</p>
-            <div id="cup-options">
-                </div>
+            <div id="cup-options"></div>
             
             <p>Dlaczego tak wybierasz? (Twoja ukryta kartka):</p>
             <input type="text" id="reason-input" placeholder="Wpisz swój tok myślenia...">
@@ -81,8 +97,7 @@
             <h3>> FAZA: WERYFIKACJA I DYSKUSJA</h3>
             <div class="timer">CZAS: <span id="chat-timer">180</span>s</div>
         </div>
-        <div id="reveal-area" class="alert">
-            </div>
+        <div id="reveal-area" class="alert"></div>
 
         <h4>> KANAŁ DYSKUSYJNY</h4>
         <div id="chat-history"></div>
@@ -102,6 +117,7 @@
     <script>
         let peer = null;
         let conn = null;
+        let mmPeer = null; // Specjalny obiekt do wyszukiwania
         let isHost = false;
         
         let state = {
@@ -112,10 +128,8 @@
             myVote: null, opVote: null
         };
 
-        let timerInterval;
-        let chatTimerInterval;
-        let timeLeft = 120;
-        let chatTimeLeft = 180;
+        let timerInterval, chatTimerInterval;
+        let timeLeft = 120, chatTimeLeft = 180;
 
         const ui = {
             status: document.getElementById('status'), lobby: document.getElementById('lobby-panel'),
@@ -128,22 +142,79 @@
             revealArea: document.getElementById('reveal-area'), chatHistory: document.getElementById('chat-history'),
             chatInput: document.getElementById('chat-input'), voteWait: document.getElementById('vote-wait'),
             voteYes: document.getElementById('vote-yes'), voteNo: document.getElementById('vote-no'),
-            chatTimer: document.getElementById('chat-timer'), disconnectMsg: document.getElementById('disconnect-msg')
+            chatTimer: document.getElementById('chat-timer'), disconnectMsg: document.getElementById('disconnect-msg'),
+            queueStatus: document.getElementById('queue-status'), queueText: document.getElementById('queue-text')
         };
 
-        // --- P2P LOBBY ---
-        function createRoom() {
+        // --- MATCHMAKING (P2P Kolejkowanie) ---
+        function searchRank(rank) {
             ui.disconnectMsg.classList.add('hidden');
-            let pin = Math.floor(1000 + Math.random() * 9000);
-            let id = 'trucizna-' + pin;
-            peer = new Peer(id);
-            isHost = true;
+            ui.queueStatus.classList.remove('hidden');
+            ui.queueText.innerText = `Przeszukuję sieć (Ranga ${rank})`;
             
-            peer.on('open', (id) => {
-                ui.hostInfo.classList.remove('hidden');
-                ui.roomId.innerText = pin;
+            let queueId = `trucizna-global-rank-${rank}`;
+            
+            if(mmPeer) mmPeer.destroy();
+            mmPeer = new Peer(); // Tworzymy zwykłego gościa by sprawdzić czy ktoś już czeka
+            
+            mmPeer.on('open', () => {
+                let tempConn = mmPeer.connect(queueId);
+                
+                tempConn.on('open', () => {
+                    // Ktoś już był w kolejce! Znaleźliśmy hosta.
+                    ui.queueText.innerText = `Przeciwnik znaleziony! Nawiązywanie...`;
+                    tempConn.on('data', (msg) => {
+                        if(msg.type === 'MATCH_FOUND') {
+                            mmPeer.destroy(); // Zabijamy sprzęt szukający
+                            joinPrivateMatch(msg.data); // Wchodzimy do wygenerowanego przez niego pokoju
+                        }
+                    });
+                });
+                
+                mmPeer.on('error', (err) => {
+                    if(err.type === 'peer-unavailable') {
+                        // Nikogo nie ma. My stajemy się Hostem kolejki!
+                        mmPeer.destroy();
+                        becomeQueueHost(queueId);
+                    }
+                });
+            });
+        }
+
+        function becomeQueueHost(queueId) {
+            ui.queueText.innerText = `Kolejka pusta. Tworzę poczekalnię, oczekiwanie...`;
+            mmPeer = new Peer(queueId); // Przejmujemy adres danej Rangi
+            
+            mmPeer.on('connection', (tempConn) => {
+                // Ktoś nas znalazł w kolejce!
+                ui.queueText.innerText = `Ktoś dołączył! Budowanie pokoju...`;
+                let secretRoomId = 'truc-match-' + Math.floor(Math.random() * 999999);
+                
+                tempConn.on('open', () => {
+                    tempConn.send({ type: 'MATCH_FOUND', data: secretRoomId });
+                    setTimeout(() => {
+                        mmPeer.destroy(); // Zwalniamy miejsce w kolejce dla innych graczy na świecie
+                        hostPrivateMatch(secretRoomId); // Tworzymy nową arenę
+                    }, 1000);
+                });
             });
 
+            mmPeer.on('error', (err) => {
+                if(err.type === 'unavailable-id') {
+                    // Ktoś w tej samej mikrosekundzie zajął kolejkę. Ponów poszukiwania.
+                    setTimeout(() => searchRank(queueId.slice(-1)), 500); 
+                }
+            });
+        }
+
+        function cancelSearch() {
+            if(mmPeer) mmPeer.destroy();
+            ui.queueStatus.classList.add('hidden');
+        }
+
+        function hostPrivateMatch(roomId) {
+            isHost = true;
+            peer = new Peer(roomId);
             peer.on('connection', (connection) => {
                 conn = connection;
                 setupConnection();
@@ -151,18 +222,35 @@
             });
         }
 
-        function joinRoom() {
-            ui.disconnectMsg.classList.add('hidden');
-            let pin = document.getElementById('join-id').value.trim();
-            if(!pin) return alert("Wpisz kod!");
+        function joinPrivateMatch(roomId) {
+            isHost = false;
             peer = new Peer();
             peer.on('open', () => {
-                conn = peer.connect('trucizna-' + pin);
+                conn = peer.connect(roomId);
                 setupConnection();
             });
         }
 
+        // --- GRA PRYWATNA ---
+        function createRoom() {
+            ui.disconnectMsg.classList.add('hidden');
+            let pin = Math.floor(1000 + Math.random() * 9000);
+            hostPrivateMatch('trucizna-priv-' + pin);
+            ui.hostInfo.classList.remove('hidden');
+            ui.roomId.innerText = pin;
+        }
+
+        function joinRoom() {
+            ui.disconnectMsg.classList.add('hidden');
+            let pin = document.getElementById('join-id').value.trim();
+            if(!pin) return alert("Wpisz kod!");
+            joinPrivateMatch('trucizna-priv-' + pin);
+        }
+
+        // --- CORE GAMEPLAY ---
         function setupConnection() {
+            ui.queueStatus.classList.add('hidden');
+            
             conn.on('open', () => {
                 ui.status.innerText = `[ POŁĄCZONO ] WYNIKI - Ty: ${state.myScore} | Przeciwnik: ${state.opScore}`;
                 if(!isHost) start5SecCountdown();
@@ -175,46 +263,31 @@
                     ui.opStatus.style.color = "#0f0";
                     checkBothSubmitted();
                 }
-                else if(msg.type === 'CHAT') {
-                    appendChat("Przeciwnik", msg.data, "msg-op");
-                }
-                else if(msg.type === 'VOTE') {
-                    state.opVote = msg.data;
-                    checkVotes();
-                }
-                else if(msg.type === 'NEXT_ROUND') {
-                    state.round++;
-                    start5SecCountdown();
-                }
-                else if(msg.type === 'END_GAME') {
-                    endGame();
-                }
-                else if(msg.type === 'KICK') {
-                    handleKick(msg.data);
-                }
+                else if(msg.type === 'CHAT') appendChat("Przeciwnik", msg.data, "msg-op");
+                else if(msg.type === 'VOTE') { state.opVote = msg.data; checkVotes(); }
+                else if(msg.type === 'NEXT_ROUND') { state.round++; start5SecCountdown(); }
+                else if(msg.type === 'END_GAME') endGame();
+                else if(msg.type === 'KICK') handleKick(msg.data);
             });
 
             conn.on('close', () => {
-                if(!document.getElementById('lobby-panel').classList.contains('hidden')) return;
-                handleKick("Połączenie zerwane. Przeciwnik się rozłączył.");
+                if(!ui.lobby.classList.contains('hidden')) return;
+                handleKick("Połączenie zerwane. Przeciwnik uciekł.");
             });
         }
 
-        // --- KICK SYSTEM ---
         function kickPlayer(reason) {
             if(conn && conn.open) {
-                conn.send({ type: 'KICK', data: "Przeciwnik został wyrzucony za brak aktywności." });
+                conn.send({ type: 'KICK', data: "Przeciwnik wyrzucony za brak aktywności." });
                 setTimeout(() => conn.close(), 500);
             }
             handleKick(reason);
         }
 
         function handleKick(reason) {
-            clearInterval(timerInterval);
-            clearInterval(chatTimerInterval);
-            hideAll();
+            clearInterval(timerInterval); clearInterval(chatTimerInterval); hideAll();
             ui.lobby.classList.remove('hidden');
-            ui.disconnectMsg.innerText = `> BŁĄD KRYTYCZNY: ${reason}`;
+            ui.disconnectMsg.innerText = `> BŁĄD: ${reason}`;
             ui.disconnectMsg.classList.remove('hidden');
             ui.status.innerText = "[ OFFLINE ]";
             state.myScore = 0; state.opScore = 0; state.round = 1;
@@ -222,12 +295,9 @@
 
         function hideAll() { ui.lobby.classList.add('hidden'); ui.countdown.classList.add('hidden'); ui.game.classList.add('hidden'); ui.vote.classList.add('hidden'); }
 
-        // --- PRZEBIEG GRY ---
         function start5SecCountdown() {
-            hideAll();
-            ui.countdown.classList.remove('hidden');
-            let t = 5;
-            ui.startTimer.innerText = t;
+            hideAll(); ui.countdown.classList.remove('hidden');
+            let t = 5; ui.startTimer.innerText = t;
             let iv = setInterval(() => {
                 t--; ui.startTimer.innerText = t;
                 if(t <= 0) { clearInterval(iv); startPlayingPhase(); }
@@ -236,7 +306,6 @@
 
         function startPlayingPhase() {
             hideAll(); ui.game.classList.remove('hidden');
-            
             let hostPoisons = (state.round % 2 !== 0);
             state.myRole = (isHost === hostPoisons) ? 'poisoner' : 'drinker';
             
@@ -257,27 +326,20 @@
 
             let mySideId = isHost ? 'host_side' : 'guest_side';
             let opSideId = isHost ? 'guest_side' : 'host_side';
-            
             ui.cupOptions.innerHTML = `
                 <div class="cup-option" id="cup-${mySideId}" onclick="selectCup('${mySideId}')">Kubek bliżej MNIE</div>
                 <div class="cup-option" id="cup-${opSideId}" onclick="selectCup('${opSideId}')">Kubek bliżej PRZECIWNIKA</div>
             `;
 
-            timeLeft = 120;
-            ui.roundTimer.innerText = timeLeft;
+            timeLeft = 120; ui.roundTimer.innerText = timeLeft;
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--; ui.roundTimer.innerText = timeLeft;
                 if(timeLeft <= 0) {
                     clearInterval(timerInterval);
                     if(!state.myAction) {
-                        let reason = ui.reasonInput.value.trim();
-                        // Wyrzucenie gracza po czasie jeśli nie wybrał kubka lub sensu
-                        if(!selectedCup || !reason) {
-                            kickPlayer("Czas minął! Nie wybrano kubka lub nie wpisano sensu.");
-                        } else {
-                            submitAction(); // auto-wysyłka jeśli w ostanich ms wypełnił, ale nie zdążył kliknąć
-                        }
+                        if(!selectedCup || !ui.reasonInput.value.trim()) kickPlayer("Czas minął! Brak reakcji.");
+                        else submitAction();
                     }
                 }
             }, 1000);
@@ -292,15 +354,9 @@
         }
 
         function submitAction() {
-            if(!selectedCup) {
-                alert("BŁĄD: Musisz wybrać kubek przed zatwierdzeniem!");
-                return;
-            }
+            if(!selectedCup) return alert("BŁĄD: Musisz wybrać kubek!");
             let reason = ui.reasonInput.value.trim();
-            if(!reason) {
-                alert("BŁĄD: Musisz wpisać swój tok myślenia (sens) przed zatwierdzeniem!");
-                return;
-            }
+            if(!reason) return alert("BŁĄD: Wpisz swój sens (kartkę)!");
 
             state.myAction = { cup: selectedCup, reason: reason };
             ui.submitBtn.disabled = true; ui.submitBtn.innerText = "[ WYSŁANO - CZEKAM ]";
@@ -312,16 +368,13 @@
 
         function checkBothSubmitted() {
             if(state.myAction && state.opAction) {
-                clearInterval(timerInterval);
-                timeLeft = 0; ui.roundTimer.innerText = 0;
+                clearInterval(timerInterval); timeLeft = 0; ui.roundTimer.innerText = 0;
                 setTimeout(showRevealPhase, 1000);
             }
         }
 
-        // --- FAZA WERYFIKACJI I CZATU ---
         function showRevealPhase() {
             hideAll(); ui.vote.classList.remove('hidden');
-            
             let pAction = state.myRole === 'poisoner' ? state.myAction : state.opAction;
             let dAction = state.myRole === 'drinker' ? state.myAction : state.opAction;
             
@@ -329,40 +382,27 @@
             if(survived && state.myRole === 'drinker') state.myScore++;
             else if(survived && state.myRole === 'poisoner') state.opScore++;
 
-            let pPos = getLocalCupName(pAction.cup);
-            let dPos = getLocalCupName(dAction.cup);
-
             let resHtml = `<h3>WYNIK RUNDY: ${survived ? 'PRZEŻYCIE (+1 dla pijącego)' : 'ŚMIERĆ W MĘCZARNIACH'}</h3>`;
-            resHtml += `<p>Pozycja trucizny: <strong>${pPos}</strong> | Wypito: <strong>${dPos}</strong></p><hr style="border:1px solid #333;">`;
+            resHtml += `<p>Pozycja trucizny: <strong>${getLocalCupName(pAction.cup)}</strong> | Wypito: <strong>${getLocalCupName(dAction.cup)}</strong></p><hr style="border:1px solid #333;">`;
             resHtml += `<p><strong>Kartka Rozlewającego:</strong> "${pAction.reason}"</p>`;
             resHtml += `<p><strong>Kartka Pijącego:</strong> "${dAction.reason}"</p>`;
             
             ui.revealArea.innerHTML = resHtml;
-            updateStatus();
-            ui.voteWait.innerText = "Czekam na głos przeciwnika..."; // reset tekstu
+            updateStatus(); ui.voteWait.innerText = "Czekam na głos przeciwnika...";
 
-            // Czat timer - 3 minuty
-            chatTimeLeft = 180;
-            ui.chatTimer.innerText = chatTimeLeft;
+            chatTimeLeft = 180; ui.chatTimer.innerText = chatTimeLeft;
             clearInterval(chatTimerInterval);
             chatTimerInterval = setInterval(() => {
-                chatTimeLeft--;
-                ui.chatTimer.innerText = chatTimeLeft;
+                chatTimeLeft--; ui.chatTimer.innerText = chatTimeLeft;
                 if(chatTimeLeft <= 0) {
                     clearInterval(chatTimerInterval);
-                    if(state.myVote === null) {
-                        submitVote(false); // wymuszenie głosu "nie", jeśli uciekł czas na czacie
-                    }
+                    if(state.myVote === null) submitVote(false);
                 }
             }, 1000);
         }
 
-        function getLocalCupName(cupId) {
-            let mySideId = isHost ? 'host_side' : 'guest_side';
-            return cupId === mySideId ? "Kubek bliżej Ciebie" : "Kubek bliżej Przeciwnika";
-        }
+        function getLocalCupName(cupId) { return cupId === (isHost ? 'host_side' : 'guest_side') ? "Kubek bliżej Ciebie" : "Kubek bliżej Przeciwnika"; }
 
-        // --- CZAT I GŁOSOWANIE ---
         function sendChat() {
             let msg = ui.chatInput.value.trim();
             if(!msg) return;
@@ -372,10 +412,8 @@
         }
 
         function appendChat(sender, msg, cssClass) {
-            let p = document.createElement('p');
-            p.innerHTML = `<span class="${cssClass}">[${sender}]</span>: ${msg}`;
-            ui.chatHistory.appendChild(p);
-            ui.chatHistory.scrollTop = ui.chatHistory.scrollHeight;
+            let p = document.createElement('p'); p.innerHTML = `<span class="${cssClass}">[${sender}]</span>: ${msg}`;
+            ui.chatHistory.appendChild(p); ui.chatHistory.scrollTop = ui.chatHistory.scrollHeight;
         }
 
         ui.chatInput.addEventListener('keypress', function (e) { if (e.key === 'Enter') sendChat(); });
@@ -390,63 +428,45 @@
 
         function checkVotes() {
             if(state.myVote !== null && state.opVote !== null) {
-                // Gdy obaj zagłosują - skracamy czas dyskusji
-                clearInterval(chatTimerInterval);
-                ui.chatTimer.innerText = "0";
+                clearInterval(chatTimerInterval); ui.chatTimer.innerText = "0";
                 
                 if(state.myVote === true && state.opVote === true) {
                     appendChat("SYSTEM", "KARTKI SĄ ZGODNE. Dodatkowy punkt dla pijącego!", "msg-sys");
                     if(state.myRole === 'drinker') state.myScore++;
                     else state.opScore++;
-                } else {
-                    appendChat("SYSTEM", "BRAK ZGODY CO DO SENSU. Runda bez bonusa.", "msg-sys");
-                }
+                } else appendChat("SYSTEM", "BRAK ZGODY CO DO SENSU. Runda bez bonusa.", "msg-sys");
+                
                 updateStatus();
-
-                // 10 sekund do następnego komunikatu (Widoczne dla obu graczy)
                 let waitTime = 10;
                 ui.voteWait.innerHTML = `Wynik zatwierdzony. Następna faza za <strong id="next-phase-timer" style="color:#ff0;">${waitTime}</strong>s...`;
                 
                 let waitIv = setInterval(() => {
-                    waitTime--;
-                    let el = document.getElementById('next-phase-timer');
+                    waitTime--; let el = document.getElementById('next-phase-timer');
                     if(el) el.innerText = waitTime;
                     
                     if(waitTime <= 0) {
                         clearInterval(waitIv);
-                        // Host decyduje co dalej
                         if(isHost) {
                             if(state.round < state.maxRounds) {
-                                state.round++;
-                                start5SecCountdown();
-                                conn.send({ type: 'NEXT_ROUND' });
-                            } else {
-                                endGame();
-                                conn.send({ type: 'END_GAME' });
-                            }
+                                state.round++; start5SecCountdown(); conn.send({ type: 'NEXT_ROUND' });
+                            } else { endGame(); conn.send({ type: 'END_GAME' }); }
                         }
                     }
                 }, 1000);
             }
         }
 
-        function updateStatus() {
-            ui.status.innerText = `[ POŁĄCZONO ] WYNIKI - Ty: ${state.myScore} | Przeciwnik: ${state.opScore}`;
-        }
+        function updateStatus() { ui.status.innerText = `[ POŁĄCZONO ] WYNIKI - Ty: ${state.myScore} | Przeciwnik: ${state.opScore}`; }
 
         function endGame() {
-            hideAll();
-            ui.lobby.classList.remove('hidden');
+            hideAll(); ui.lobby.classList.remove('hidden');
             let resHtml = `<h2>KONIEC GRY</h2><p>Twój wynik: ${state.myScore}</p><p>Wynik przeciwnika: ${state.opScore}</p>`;
             if(state.myScore > state.opScore) resHtml += "<h3 style='color:#0f0'>ZWYCIĘSTWO!</h3>";
             else if(state.myScore < state.opScore) resHtml += "<h3 style='color:#f00'>PORAŻKA...</h3>";
             else resHtml += "<h3 style='color:#ff0'>REMIS.</h3>";
             
             ui.disconnectMsg.innerHTML = resHtml;
-            ui.disconnectMsg.classList.remove('hidden');
-            ui.disconnectMsg.classList.remove('error'); // Zmiana na zielony kolor (alert standardowy)
-            
-            // Reset po stronie zmiennych, zeby mozna bylo zagrac ponownie (po odświeżeniu)
+            ui.disconnectMsg.classList.remove('hidden', 'error');
             if(conn) conn.close();
         }
     </script>
