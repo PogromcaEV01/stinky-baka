@@ -2,37 +2,107 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gra w Truciznę - Globalna Sieć</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: 'Courier New', Courier, monospace; background: #000; color: #0f0; max-width: 800px; margin: 20px auto; padding: 20px; border: 2px solid #0f0; }
-        h1, h2, h3, h4 { border-bottom: 1px dashed #0f0; padding-bottom: 10px; margin-top: 0; }
-        input[type="text"], input[type="text"]:disabled { background: #111; color: #0f0; border: 1px solid #0f0; padding: 8px; width: 90%; font-family: inherit; margin: 5px 0;}
-        button { background: #0f0; color: #000; border: 1px solid #0f0; padding: 10px 15px; margin: 10px 5px 10px 0; font-family: inherit; font-weight: bold; cursor: pointer; }
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            background: #000; 
+            color: #0f0; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 20px; 
+            border: 2px solid #0f0; 
+            min-height: 95vh;
+        }
+        h1, h2, h3, h4 { border-bottom: 1px dashed #0f0; padding-bottom: 10px; margin-top: 0; word-wrap: break-word; }
+        
+        input[type="text"], input[type="text"]:disabled { 
+            background: #111; 
+            color: #0f0; 
+            border: 1px solid #0f0; 
+            padding: 10px; 
+            width: 100%; 
+            font-family: inherit; 
+            margin: 5px 0;
+            outline: none;
+        }
+        input[type="text"]:focus { background: #050505; border-color: #ff0; }
+        
+        button { 
+            background: #0f0; 
+            color: #000; 
+            border: 1px solid #0f0; 
+            padding: 12px 15px; 
+            margin: 10px 5px 10px 0; 
+            font-family: inherit; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.2s;
+        }
         button:hover { background: #000; color: #0f0; }
         button:disabled { background: #333; color: #555; border-color: #333; cursor: not-allowed; }
+        
         .hidden { display: none !important; }
         .panel { margin-top: 20px; padding: 15px; border: 1px solid #0f0; }
-        #status { font-size: 0.9em; opacity: 0.8; margin-bottom: 20px; }
-        .alert { background: #111; padding: 15px; border-left: 5px solid #0f0; margin-bottom: 20px; }
+        #status { font-size: 0.9em; opacity: 0.8; margin-bottom: 20px; word-wrap: break-word; }
+        .alert { background: #111; padding: 15px; border-left: 5px solid #0f0; margin-bottom: 20px; word-wrap: break-word; }
         .error { border-left-color: #f00; color: #f00; }
-        .flex-row { display: flex; justify-content: space-between; align-items: center; }
+        
+        .flex-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        
+        /* Flexbox dla Input + Button */
+        .input-group { display: flex; gap: 10px; width: 100%; align-items: stretch; margin-bottom: 10px; }
+        .input-group input { flex-grow: 1; margin: 0; }
+        .input-group button { margin: 0; flex-shrink: 0; white-space: nowrap; }
+
         .timer { font-size: 1.5em; font-weight: bold; color: #f00; }
         
         /* Czat */
-        #chat-history { height: 150px; overflow-y: scroll; border: 1px solid #0f0; background: #050505; padding: 10px; margin-bottom: 10px; }
-        #chat-history p { margin: 2px 0; }
+        #chat-history { height: 150px; overflow-y: scroll; border: 1px solid #0f0; background: #050505; padding: 10px; margin-bottom: 10px; word-wrap: break-word; }
+        #chat-history p { margin: 4px 0; }
         .msg-me { color: #0f0; }
         .msg-op { color: #ff0; }
         .msg-sys { color: #f00; font-weight: bold; }
         
         /* Opcje kubków i Rangi */
-        .cup-option { display: inline-block; border: 1px dashed #0f0; padding: 10px; margin: 10px 10px 10px 0; cursor: pointer; }
+        .cup-option { 
+            display: inline-block; 
+            border: 1px dashed #0f0; 
+            padding: 12px; 
+            margin: 10px 10px 10px 0; 
+            cursor: pointer; 
+            transition: 0.2s;
+            text-align: center;
+        }
         .cup-option.selected { background: #0f0; color: #000; font-weight: bold; }
         .rank-btn { width: 100%; text-align: left; margin-bottom: 5px; }
         
         .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite; }
         @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+
+        /* --- MEDIA QUERIES (DLA URZĄDZEŃ MOBILNYCH) --- */
+        @media (max-width: 600px) {
+            body { margin: 10px; padding: 15px; }
+            h1 { font-size: 1.4em; }
+            h3 { font-size: 1.1em; }
+            
+            .flex-row { flex-direction: column; align-items: flex-start; }
+            .flex-row .timer { align-self: flex-end; margin-top: -35px; } 
+            
+            .input-group { flex-direction: column; }
+            .input-group button { width: 100%; }
+
+            .cup-option { display: block; width: 100%; margin: 5px 0; }
+            
+            #voting-area button { width: 100%; margin-bottom: 10px; }
+            button { width: 100%; margin: 5px 0; }
+            
+            #room-id { word-break: break-all; }
+        }
     </style>
 </head>
 <body>
@@ -42,7 +112,7 @@
     <div id="lobby-panel" class="panel">
         <div id="disconnect-msg" class="alert error hidden"></div>
         
-        <h3>> TRYB RANKINGOWY (DOBIERANIE GRACZY)</h3>
+        <h3>> TRYB RANKINGOWY</h3>
         <p>Wybierz poziom przeciwników. System przeszuka globalną sieć.</p>
         <button class="rank-btn" onclick="searchRank(1)">[ RANGA 1 ] Świeżaki i nowicjusze</button>
         <button class="rank-btn" onclick="searchRank(2)">[ RANGA 2 ] Amatorzy dedukcji</button>
@@ -56,14 +126,16 @@
 
         <hr style="border-color:#0f0; border-style:dashed; margin: 20px 0;">
 
-        <h3>> GRA PRYWATNA (ZE ZNAJOMYM)</h3>
+        <h3>> GRA PRYWATNA</h3>
         <button onclick="createRoom()">[ STWÓRZ POKÓJ ]</button>
-        <div id="host-info" class="hidden" style="margin: 10px 0;">
+        <div id="host-info" class="hidden alert" style="margin: 10px 0;">
             Twój kod dostępu: <strong id="room-id" style="font-size: 1.5em; color: #ff0;"></strong><br>Czekam na przeciwnika...
         </div>
-        <br>
-        <input type="text" id="join-id" placeholder="Wpisz kod pokoju znajomego..." style="width: 50%;">
-        <button onclick="joinRoom()">[ DOŁĄCZ ]</button>
+        <br><br>
+        <div class="input-group">
+            <input type="text" id="join-id" placeholder="Wpisz kod pokoju znajomego...">
+            <button onclick="joinRoom()">[ DOŁĄCZ ]</button>
+        </div>
     </div>
 
     <div id="countdown-panel" class="panel hidden" style="text-align: center;">
@@ -85,39 +157,39 @@
             <p>Dlaczego tak wybierasz? (Twoja ukryta kartka):</p>
             <input type="text" id="reason-input" placeholder="Wpisz swój tok myślenia...">
             
-            <div class="flex-row" style="margin-top: 15px;">
+            <div style="margin-top: 15px;">
                 <button id="submit-btn" onclick="submitAction()">[ ODDAL KARTKĘ I ZATWIERDŹ ]</button>
-                <div id="op-status" style="color: #555;">[ ] Przeciwnik pisze...</div>
+                <div id="op-status" style="color: #555; margin-top: 10px; font-weight: bold;">[ ] Przeciwnik pisze...</div>
             </div>
         </div>
     </div>
 
     <div id="vote-panel" class="panel hidden">
         <div class="flex-row">
-            <h3>> FAZA: WERYFIKACJA I DYSKUSJA</h3>
+            <h3>> FAZA: WERYFIKACJA</h3>
             <div class="timer">CZAS: <span id="chat-timer">180</span>s</div>
         </div>
         <div id="reveal-area" class="alert"></div>
 
         <h4>> KANAŁ DYSKUSYJNY</h4>
         <div id="chat-history"></div>
-        <div class="flex-row">
-            <input type="text" id="chat-input" placeholder="Napisz wiadomość przed głosowaniem..." style="width: 75%;">
-            <button onclick="sendChat()" style="width: 20%;">[ WYŚLIJ ]</button>
+        <div class="input-group">
+            <input type="text" id="chat-input" placeholder="Napisz wiadomość przed głosowaniem...">
+            <button onclick="sendChat()">[ WYŚLIJ ]</button>
         </div>
 
         <div id="voting-area" style="margin-top: 20px;">
             <p><strong>Zdecyduj: Czy sens Waszych kartek jest taki sam?</strong> (Gdy obaj zagłosują, czas mija szybciej)</p>
             <button id="vote-yes" onclick="submitVote(true)">[ TAK, ZGADZAMY SIĘ ]</button>
             <button id="vote-no" onclick="submitVote(false)">[ NIE, INNY SENS ]</button>
-            <span id="vote-wait" class="hidden" style="margin-left:10px;">Czekam na głos przeciwnika...</span>
+            <div id="vote-wait" class="hidden" style="margin-top:10px; color:#ff0; font-weight:bold;">Czekam na głos przeciwnika...</div>
         </div>
     </div>
 
     <script>
         let peer = null;
         let conn = null;
-        let mmPeer = null; // Specjalny obiekt do wyszukiwania
+        let mmPeer = null; 
         let isHost = false;
         
         let state = {
@@ -128,7 +200,8 @@
             myVote: null, opVote: null
         };
 
-        let timerInterval, chatTimerInterval;
+        // ZMIANA: Przywrócono queueTimeout potrzebny do stabilnego szukania
+        let timerInterval, chatTimerInterval, queueTimeout;
         let timeLeft = 120, chatTimeLeft = 180;
 
         const ui = {
@@ -146,7 +219,7 @@
             queueStatus: document.getElementById('queue-status'), queueText: document.getElementById('queue-text')
         };
 
-        // --- MATCHMAKING (P2P Kolejkowanie) ---
+        // --- NAPRAWIONE MATCHMAKING (Z mechanizmem setTimeout) ---
         function searchRank(rank) {
             ui.disconnectMsg.classList.add('hidden');
             ui.queueStatus.classList.remove('hidden');
@@ -155,66 +228,68 @@
             let queueId = `trucizna-global-rank-${rank}`;
             
             if(mmPeer) mmPeer.destroy();
-            mmPeer = new Peer(); // Tworzymy zwykłego gościa by sprawdzić czy ktoś już czeka
+            mmPeer = new Peer(); 
             
             mmPeer.on('open', () => {
-                let tempConn = mmPeer.connect(queueId);
+                let tempConn = mmPeer.connect(queueId, { reliable: true });
                 
+                queueTimeout = setTimeout(() => {
+                    if(tempConn) tempConn.close();
+                    mmPeer.destroy();
+                    becomeQueueHost(queueId);
+                }, 4000);
+
                 tempConn.on('open', () => {
-                    // Ktoś już był w kolejce! Znaleźliśmy hosta.
+                    clearTimeout(queueTimeout); 
                     ui.queueText.innerText = `Przeciwnik znaleziony! Nawiązywanie...`;
+                    
                     tempConn.on('data', (msg) => {
                         if(msg.type === 'MATCH_FOUND') {
-                            mmPeer.destroy(); // Zabijamy sprzęt szukający
-                            joinPrivateMatch(msg.data); // Wchodzimy do wygenerowanego przez niego pokoju
+                            mmPeer.destroy(); 
+                            setTimeout(() => joinPrivateMatch(msg.data), 500); 
                         }
                     });
-                });
-                
-                mmPeer.on('error', (err) => {
-                    if(err.type === 'peer-unavailable') {
-                        // Nikogo nie ma. My stajemy się Hostem kolejki!
-                        mmPeer.destroy();
-                        becomeQueueHost(queueId);
-                    }
                 });
             });
         }
 
         function becomeQueueHost(queueId) {
             ui.queueText.innerText = `Kolejka pusta. Tworzę poczekalnię, oczekiwanie...`;
-            mmPeer = new Peer(queueId); // Przejmujemy adres danej Rangi
+            mmPeer = new Peer(queueId); 
             
             mmPeer.on('connection', (tempConn) => {
-                // Ktoś nas znalazł w kolejce!
                 ui.queueText.innerText = `Ktoś dołączył! Budowanie pokoju...`;
                 let secretRoomId = 'truc-match-' + Math.floor(Math.random() * 999999);
                 
-                tempConn.on('open', () => {
+                hostPrivateMatch(secretRoomId, () => {
                     tempConn.send({ type: 'MATCH_FOUND', data: secretRoomId });
-                    setTimeout(() => {
-                        mmPeer.destroy(); // Zwalniamy miejsce w kolejce dla innych graczy na świecie
-                        hostPrivateMatch(secretRoomId); // Tworzymy nową arenę
-                    }, 1000);
+                    setTimeout(() => { if(mmPeer) mmPeer.destroy(); }, 2000);
                 });
             });
 
             mmPeer.on('error', (err) => {
                 if(err.type === 'unavailable-id') {
-                    // Ktoś w tej samej mikrosekundzie zajął kolejkę. Ponów poszukiwania.
-                    setTimeout(() => searchRank(queueId.slice(-1)), 500); 
+                    setTimeout(() => searchRank(queueId.slice(-1)), 1000); 
                 }
             });
         }
 
         function cancelSearch() {
+            clearTimeout(queueTimeout);
             if(mmPeer) mmPeer.destroy();
             ui.queueStatus.classList.add('hidden');
         }
 
-        function hostPrivateMatch(roomId) {
+        // --- NAPRAWIONE OTWIERANIE POKOI PRYWATNYCH (Czyszczenie starych sesji peer) ---
+        function hostPrivateMatch(roomId, onReadyCallback = null) {
             isHost = true;
+            if(peer) peer.destroy(); // <--- Ważne czyszczenie
             peer = new Peer(roomId);
+            
+            peer.on('open', () => {
+                if(onReadyCallback) onReadyCallback();
+            });
+
             peer.on('connection', (connection) => {
                 conn = connection;
                 setupConnection();
@@ -224,14 +299,14 @@
 
         function joinPrivateMatch(roomId) {
             isHost = false;
+            if(peer) peer.destroy(); // <--- Ważne czyszczenie
             peer = new Peer();
             peer.on('open', () => {
-                conn = peer.connect(roomId);
+                conn = peer.connect(roomId, { reliable: true });
                 setupConnection();
             });
         }
 
-        // --- GRA PRYWATNA ---
         function createRoom() {
             ui.disconnectMsg.classList.add('hidden');
             let pin = Math.floor(1000 + Math.random() * 9000);
@@ -247,9 +322,9 @@
             joinPrivateMatch('trucizna-priv-' + pin);
         }
 
-        // --- CORE GAMEPLAY ---
         function setupConnection() {
             ui.queueStatus.classList.add('hidden');
+            ui.hostInfo.classList.add('hidden');
             
             conn.on('open', () => {
                 ui.status.innerText = `[ POŁĄCZONO ] WYNIKI - Ty: ${state.myScore} | Przeciwnik: ${state.opScore}`;
@@ -272,7 +347,7 @@
 
             conn.on('close', () => {
                 if(!ui.lobby.classList.contains('hidden')) return;
-                handleKick("Połączenie zerwane. Przeciwnik uciekł.");
+                handleKick("Połączenie zerwane. Przeciwnik uciekł z serwera.");
             });
         }
 
@@ -382,7 +457,7 @@
             if(survived && state.myRole === 'drinker') state.myScore++;
             else if(survived && state.myRole === 'poisoner') state.opScore++;
 
-            let resHtml = `<h3>WYNIK RUNDY: ${survived ? 'PRZEŻYCIE (+1 dla pijącego)' : 'ŚMIERĆ W MĘCZARNIACH'}</h3>`;
+            let resHtml = `<h3>WYNIK RUNDY: ${survived ? '<span style="color:#0f0;">PRZEŻYCIE (+1)</span>' : '<span style="color:#f00;">ŚMIERĆ W MĘCZARNIACH</span>'}</h3>`;
             resHtml += `<p>Pozycja trucizny: <strong>${getLocalCupName(pAction.cup)}</strong> | Wypito: <strong>${getLocalCupName(dAction.cup)}</strong></p><hr style="border:1px solid #333;">`;
             resHtml += `<p><strong>Kartka Rozlewającego:</strong> "${pAction.reason}"</p>`;
             resHtml += `<p><strong>Kartka Pijącego:</strong> "${dAction.reason}"</p>`;
