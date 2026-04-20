@@ -7,63 +7,73 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --night-sky: #1a1a2e;
+            --night-sky: #0f0f1d;
             --festival-pink: #ff4d94;
             --firework-gold: #ffcc00;
             --firework-blue: #00d4ff;
             --text-light: #e0e0e0;
+            --panel-bg: rgba(20, 20, 35, 0.95);
         }
 
         body { 
             font-family: 'Comfortaa', cursive; 
             background: var(--night-sky);
-            /* Gradient imitujący nocne niebo z rozbłyskami */
             background-image: 
-                radial-gradient(circle at 20% 30%, rgba(255, 77, 148, 0.2) 0%, transparent 20%),
-                radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.2) 0%, transparent 20%),
+                radial-gradient(circle at 10% 10%, rgba(255, 77, 148, 0.15) 0%, transparent 25%),
+                radial-gradient(circle at 90% 20%, rgba(0, 212, 255, 0.15) 0%, transparent 25%),
                 url('https://www.transparenttextures.com/patterns/stardust.png');
             color: var(--text-light); 
             max-width: 850px; 
             margin: 20px auto; 
             padding: 20px; 
-            border: 4px solid #2d2d44; 
+            border: 2px solid #2d2d44; 
             border-radius: 30px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
 
         h1 { 
             font-family: 'Comic Neue', sans-serif;
             text-align: center;
             color: var(--firework-gold);
-            text-shadow: 0 0 10px var(--firework-gold), 2px 2px 0 #000;
-            letter-spacing: 2px;
+            text-shadow: 0 0 15px var(--firework-gold), 2px 2px 0 #000;
+            margin-bottom: 5px;
         }
 
-        h2, h3 { color: var(--festival-pink); text-align: center; }
+        h2, h3, h4 { color: var(--festival-pink); text-align: center; margin-top: 5px; }
 
         .panel { 
-            background: rgba(26, 26, 46, 0.9); 
+            background: var(--panel-bg); 
             margin-top: 20px; 
             padding: 25px; 
             border-radius: 25px; 
-            border: 2px solid #3e3e5e;
-            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+            border: 1px solid #3e3e5e;
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
         }
 
         #status { 
             font-weight: bold;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 212, 255, 0.1);
             padding: 12px;
             border-radius: 50px;
             text-align: center;
             margin-bottom: 20px;
             border: 1px solid var(--firework-blue);
             color: var(--firework-blue);
+            text-shadow: 0 0 5px var(--firework-blue);
         }
 
-        /* Przyciski w stylu neonowym */
+        .lore-box {
+            font-size: 0.85em;
+            font-style: italic;
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            padding: 0 20px;
+        }
+
         button { 
-            background: transparent; 
+            background: rgba(255, 77, 148, 0.1); 
             color: var(--text-light); 
             border: 2px solid var(--festival-pink); 
             border-radius: 15px;
@@ -72,122 +82,430 @@
             font-family: inherit; 
             font-weight: bold; 
             cursor: pointer; 
-            transition: all 0.3s;
+            transition: all 0.2s;
             text-shadow: 0 0 5px var(--festival-pink);
-            box-shadow: 0 0 10px rgba(255, 77, 148, 0.2);
         }
 
         button:hover { 
             background: var(--festival-pink); 
             color: white; 
-            box-shadow: 0 0 20px var(--festival-pink);
+            box-shadow: 0 0 15px var(--festival-pink);
+        }
+
+        button:disabled {
+            border-color: #444;
+            color: #666;
+            text-shadow: none;
+            background: transparent;
+            cursor: not-allowed;
         }
 
         input[type="text"] { 
-            background: #0f0f1d; 
+            background: #050510; 
             color: white; 
             border: 1px solid #3e3e5e; 
             border-radius: 10px;
             padding: 12px; 
-            width: 90%; 
+            width: 80%; 
             outline: none;
-        }
-
-        /* Czat i Historia */
-        #chat-history { 
-            height: 150px; 
-            background: #0d0d16; 
-            border: 1px solid #2d2d44; 
-            border-radius: 15px;
-            padding: 15px;
+            text-align: center;
+            font-family: inherit;
         }
 
         .cup-option { 
             display: inline-block; 
-            background: #252538;
+            background: #1a1a2e;
             border: 2px solid var(--firework-blue); 
             border-radius: 15px;
-            padding: 20px; 
+            padding: 15px; 
             margin: 10px; 
             cursor: pointer; 
             transition: 0.3s;
+            color: var(--firework-blue);
         }
+
         .cup-option.selected { 
             border-color: var(--firework-gold); 
-            background: #3e3e5e;
+            background: #2d2d44;
             box-shadow: 0 0 15px var(--firework-gold);
+            color: var(--firework-gold);
         }
 
-        .level-btn { border-color: var(--firework-blue); text-shadow: 0 0 5px var(--firework-blue); width: 100%; }
-
-        .timer { font-size: 1.5em; color: var(--firework-gold); font-weight: bold; }
-        
-        .lore-box {
-            font-size: 0.85em;
-            font-style: italic;
-            text-align: center;
-            color: #888;
+        #chat-history { 
+            height: 120px; 
+            background: #05050a; 
+            border: 1px solid #2d2d44; 
+            border-radius: 15px;
+            padding: 15px;
+            overflow-y: auto;
+            text-align: left;
             margin-bottom: 10px;
-            line-height: 1.4;
         }
 
+        .msg-me { color: var(--festival-pink); }
+        .msg-op { color: var(--firework-blue); }
+        .msg-sys { color: var(--firework-gold); font-weight: bold; }
+
+        .timer { font-size: 1.4em; color: var(--firework-gold); font-weight: bold; }
         .hidden { display: none !important; }
+        .alert { padding: 15px; border-radius: 15px; border-left: 5px solid var(--firework-blue); background: rgba(255,255,255,0.05); margin-bottom: 10px; }
+        .error { border-left-color: #f00; color: #ff6b6b; }
+        .flex-row { display: flex; justify-content: space-between; align-items: center; }
+        .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite; }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
     </style>
 </head>
 <body>
-    <h1>LUCKY STAR: NOC FESTIWALOWA ☆</h1>
-    
+    <h1>LUCKY STAR: MATSURI NIGHT ☆</h1>
     <div class="lore-box">
         "Ostatni Choco-Cornet... Jeden jest bezpieczny, drugi to pułapka z wasabi. <br>
         W blasku fajerwerków, tylko jedna z nas wyjdzie z tego z godnością!"
     </div>
 
-    <div id="status">Obserwacja nieba... Ty: 0 | Przeciwnik: 0</div>
+    <div id="status">[ OFFLINE ] Wybierz tryb gry powyżej</div>
 
     <div id="lobby-panel" class="panel">
+        <div id="disconnect-msg" class="alert error hidden"></div>
+        
         <h3>☆ Wybierz Rywalkę ☆</h3>
-        <button class="level-btn" onclick="searchLevel(1)">[ POZIOM TSUKASA ] - Bardzo łatwe</button>
-        <button class="level-btn" onclick="searchLevel(2)">[ POZIOM MIYUKI ] - Logiczne</button>
-        <button class="level-btn" onclick="searchLevel(3)">[ POZIOM KAGAMI ] - Poważne</button>
-        <button class="level-btn" onclick="searchLevel(4)">[ POZIOM KONATA ] - Nieprzewidywalne</button>
+        <button style="width:100%" onclick="searchLevel(1)">[ POZIOM TSUKASA ] - Dla początkujących</button>
+        <button style="width:100%" onclick="searchLevel(2)">[ POZIOM MIYUKI ] - Logiczne wyzwanie</button>
+        <button style="width:100%" onclick="searchLevel(3)">[ POZIOM KAGAMI ] - Poważne starcie</button>
+        <button style="width:100%" onclick="searchLevel(4)">[ POZIOM KONATA ] - Hardkorowy trolling</button>
         
         <div id="queue-status" class="alert hidden" style="text-align: center; color: var(--firework-gold);">
-            <p>Czekam na rozbłysk sygnału... <span id="queue-text"></span></p>
-            <button onclick="cancelSearch()">[ WRÓĆ DO TŁUMU ]</button>
+            <span id="queue-text">Przeszukiwanie tłumu...</span><span class="loading-dots"></span><br>
+            <button onclick="cancelSearch()" style="border-color:#f00; color:#f00;">[ WRÓĆ DO TŁUMU ]</button>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid #2d2d44; margin: 20px 0;">
+        <hr style="border: 0; border-top: 1px dashed #3e3e5e; margin: 20px 0;">
 
-        <h3>☆ Prywatne Wyzwanie ☆</h3>
+        <h3>☆ Prywatny Pojedynek ☆</h3>
         <div style="text-align: center;">
-            <button onclick="createRoom()">STWÓRZ POKÓJ MATSURI</button>
+            <button onclick="createRoom()">STWÓRZ POKÓJ</button>
             <div id="host-info" class="hidden" style="margin: 10px;">
-                Kod dołączenia: <strong id="room-id" style="color: var(--firework-gold);"></strong>
+                Kod dołączenia: <strong id="room-id" style="color: var(--firework-gold); font-size: 1.5em;"></strong>
             </div>
             <br>
-            <input type="text" id="join-id" placeholder="Wpisz kod od koleżanki..." style="width: 50%;">
+            <input type="text" id="join-id" placeholder="Wpisz kod od koleżanki...">
             <button onclick="joinRoom()">DOŁĄCZ</button>
         </div>
     </div>
 
+    <div id="countdown-panel" class="panel hidden" style="text-align: center;">
+        <h2>POŁĄCZONO! ☆</h2>
+        <p>Przygotuj się... fajerwerki zaraz wystrzelą!</p>
+        <div id="start-timer" style="font-size: 4em; color: var(--firework-pink);">5</div>
+    </div>
+
     <div id="game-panel" class="panel hidden">
-        <div style="display:flex; justify-content: space-between;">
+        <div class="flex-row">
             <h3 id="role-title">FAZA: ???</h3>
-            <div class="timer">⌛ <span id="round-timer">120</span>s</div>
+            <div class="timer">⏳ <span id="round-timer">120</span>s</div>
         </div>
         <div style="text-align: center;">
-            <p id="question-text">Gdzie ukryjesz "wasabi"?</p>
+            <p id="question-text">Który Choco-Cornet wybierasz?</p>
             <div id="cup-options"></div>
-            <p>Twoja blef-kartka:</p>
-            <input type="text" id="reason-input" placeholder="Napisz coś, co zmyli przeciwniczkę...">
-            <br>
-            <button id="submit-btn" onclick="submitAction()">[ WYŚLIJ KARTKĘ ]</button>
-            <div id="op-status" style="font-size: 0.8em; margin-top: 5px;">Rywalka się zastanawia...</div>
+            <p>Twoja blef-kartka (sens wyboru):</p>
+            <input type="text" id="reason-input" placeholder="Napisz coś, co zmyli rywalkę...">
+            <div class="flex-row" style="margin-top: 15px;">
+                <button id="submit-btn" onclick="submitAction()">[ ZATWIERDŹ WYBÓR ]</button>
+                <div id="op-status" style="color: #666;">Rywalka pisze...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="vote-panel" class="panel hidden">
+        <div class="flex-row">
+            <h3>☆ DYSKUSJA PRZY HERBACIE ☆</h3>
+            <div class="timer">⏳ <span id="chat-timer">180</span>s</div>
+        </div>
+        <div id="reveal-area" class="alert"></div>
+
+        <div id="chat-history"></div>
+        <div class="flex-row" style="gap: 10px;">
+            <input type="text" id="chat-input" placeholder="Powiedz coś rywalce..." style="width: 70%;">
+            <button onclick="sendChat()" style="width: 25%;">[ WYŚLIJ ]</button>
+        </div>
+
+        <div id="voting-area" style="margin-top: 20px; text-align: center;">
+            <p><strong>Czy sens Waszych kartek był taki sam?</strong></p>
+            <button id="vote-yes" onclick="submitVote(true)">TAK, ZGADZAMY SIĘ ☆</button>
+            <button id="vote-no" onclick="submitVote(false)">NIE, INNY SENS</button>
+            <div id="vote-wait" class="hidden">Czekam na głos rywalki...</div>
         </div>
     </div>
 
     <script>
-        // Tutaj wklejasz CAŁĄ logikę JavaScript z pierwszego kodu
+        // --- LOGIKA PEERJS I GRY ---
+        let peer = null;
+        let conn = null;
+        let mmPeer = null; 
+        let isHost = false;
+        
+        let state = {
+            round: 1, maxRounds: 5,
+            myScore: 0, opScore: 0,
+            myRole: '',
+            myAction: null, opAction: null,
+            myVote: null, opVote: null
+        };
+
+        let timerInterval, chatTimerInterval, queueTimeout;
+        let timeLeft = 120, chatTimeLeft = 180;
+
+        const ui = {
+            status: document.getElementById('status'), lobby: document.getElementById('lobby-panel'),
+            countdown: document.getElementById('countdown-panel'), game: document.getElementById('game-panel'),
+            vote: document.getElementById('vote-panel'), hostInfo: document.getElementById('host-info'),
+            roomId: document.getElementById('room-id'), startTimer: document.getElementById('start-timer'),
+            roleTitle: document.getElementById('role-title'), roundTimer: document.getElementById('round-timer'),
+            cupOptions: document.getElementById('cup-options'), reasonInput: document.getElementById('reason-input'),
+            submitBtn: document.getElementById('submit-btn'), opStatus: document.getElementById('op-status'),
+            revealArea: document.getElementById('reveal-area'), chatHistory: document.getElementById('chat-history'),
+            chatInput: document.getElementById('chat-input'), voteWait: document.getElementById('vote-wait'),
+            voteYes: document.getElementById('vote-yes'), voteNo: document.getElementById('vote-no'),
+            chatTimer: document.getElementById('chat-timer'), disconnectMsg: document.getElementById('disconnect-msg'),
+            queueStatus: document.getElementById('queue-status'), queueText: document.getElementById('queue-text')
+        };
+
+        function searchLevel(level) {
+            ui.disconnectMsg.classList.add('hidden');
+            ui.queueStatus.classList.remove('hidden');
+            ui.queueText.innerText = `Przeszukiwanie poziomu ${level}`;
+            let queueId = `trucizna-v2-poziom-${level}`;
+            if(mmPeer) mmPeer.destroy();
+            mmPeer = new Peer(); 
+            mmPeer.on('open', () => {
+                let tempConn = mmPeer.connect(queueId, { reliable: true });
+                queueTimeout = setTimeout(() => {
+                    if(tempConn) tempConn.close();
+                    mmPeer.destroy();
+                    becomeQueueHost(queueId);
+                }, 3000);
+                tempConn.on('open', () => {
+                    clearTimeout(queueTimeout);
+                    tempConn.on('data', (msg) => {
+                        if(msg.type === 'MATCH_FOUND') {
+                            mmPeer.destroy(); 
+                            setTimeout(() => joinPrivateMatch(msg.data), 500); 
+                        }
+                    });
+                });
+            });
+        }
+
+        function becomeQueueHost(queueId) {
+            mmPeer = new Peer(queueId); 
+            mmPeer.on('connection', (tempConn) => {
+                let secretRoomId = 'truc-match-' + Math.floor(Math.random() * 999999);
+                hostPrivateMatch(secretRoomId, () => {
+                    tempConn.send({ type: 'MATCH_FOUND', data: secretRoomId });
+                    setTimeout(() => { if(mmPeer) mmPeer.destroy(); }, 2000);
+                });
+            });
+        }
+
+        function cancelSearch() {
+            clearTimeout(queueTimeout);
+            if(mmPeer) mmPeer.destroy();
+            ui.queueStatus.classList.add('hidden');
+        }
+
+        function hostPrivateMatch(roomId, onReadyCallback = null) {
+            isHost = true;
+            if(peer) peer.destroy();
+            peer = new Peer(roomId);
+            peer.on('open', () => { if(onReadyCallback) onReadyCallback(); });
+            peer.on('connection', (connection) => {
+                conn = connection;
+                ui.queueStatus.classList.add('hidden');
+                setupConnection();
+                start5SecCountdown();
+            });
+        }
+
+        function joinPrivateMatch(roomId) {
+            isHost = false;
+            if(peer) peer.destroy();
+            peer = new Peer();
+            peer.on('open', () => {
+                conn = peer.connect(roomId, { reliable: true });
+                ui.queueStatus.classList.add('hidden');
+                setupConnection();
+            });
+        }
+
+        function createRoom() {
+            let pin = Math.floor(1000 + Math.random() * 9000);
+            hostPrivateMatch('trucizna-priv-' + pin);
+            ui.hostInfo.classList.remove('hidden');
+            ui.roomId.innerText = pin;
+        }
+
+        function joinRoom() {
+            let pin = document.getElementById('join-id').value.trim();
+            if(!pin) return alert("Wpisz kod!");
+            joinPrivateMatch('trucizna-priv-' + pin);
+        }
+
+        function setupConnection() {
+            conn.on('open', () => {
+                ui.status.innerText = `[ POŁĄCZONO ] Wynik - Ty: ${state.myScore} | Rywalka: ${state.opScore}`;
+                if(!isHost) start5SecCountdown();
+            });
+            conn.on('data', (msg) => {
+                if(msg.type === 'ACTION') {
+                    state.opAction = msg.data;
+                    ui.opStatus.innerText = "[✓] Rywalka wybrała!";
+                    ui.opStatus.style.color = "var(--firework-blue)";
+                    checkBothSubmitted();
+                }
+                else if(msg.type === 'CHAT') appendChat("Rywalka", msg.data, "msg-op");
+                else if(msg.type === 'VOTE') { state.opVote = msg.data; checkVotes(); }
+                else if(msg.type === 'NEXT_ROUND') { state.round++; start5SecCountdown(); }
+                else if(msg.type === 'END_GAME') endGame();
+            });
+        }
+
+        function start5SecCountdown() {
+            hideAll(); ui.countdown.classList.remove('hidden');
+            let t = 5; ui.startTimer.innerText = t;
+            let iv = setInterval(() => {
+                t--; ui.startTimer.innerText = t;
+                if(t <= 0) { clearInterval(iv); startPlayingPhase(); }
+            }, 1000);
+        }
+
+        function startPlayingPhase() {
+            hideAll(); ui.game.classList.remove('hidden');
+            let hostPoisons = (state.round % 2 !== 0);
+            state.myRole = (isHost === hostPoisons) ? 'poisoner' : 'drinker';
+            state.myAction = null; state.opAction = null; state.myVote = null; state.opVote = null;
+            ui.reasonInput.value = ''; ui.reasonInput.disabled = false; selectedCup = null;
+            ui.submitBtn.disabled = false; ui.opStatus.innerText = "Rywalka myśli...";
+            
+            if(state.myRole === 'poisoner') {
+                ui.roleTitle.innerText = `☆ RUNDA ${state.round} | DAJESZ WASABI`;
+                document.getElementById('question-text').innerText = "W którym Cornetcie ukryjesz wasabi?";
+            } else {
+                ui.roleTitle.innerText = `☆ RUNDA ${state.round} | WYBIERASZ DESER`;
+                document.getElementById('question-text').innerText = "Który Cornet wydaje się bezpieczny?";
+            }
+
+            let mySideId = isHost ? 'host_side' : 'guest_side';
+            let opSideId = isHost ? 'guest_side' : 'host_side';
+            ui.cupOptions.innerHTML = `
+                <div class="cup-option" id="cup-${mySideId}" onclick="selectCup('${mySideId}')">Ten bliżej MNIE</div>
+                <div class="cup-option" id="cup-${opSideId}" onclick="selectCup('${opSideId}')">Ten bliżej RYWALKI</div>
+            `;
+
+            timeLeft = 120; ui.roundTimer.innerText = timeLeft;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--; ui.roundTimer.innerText = timeLeft;
+                if(timeLeft <= 0) { clearInterval(timerInterval); if(!state.myAction) submitAction(); }
+            }, 1000);
+        }
+
+        let selectedCup = null;
+        function selectCup(cupId) {
+            if(state.myAction) return;
+            selectedCup = cupId;
+            document.querySelectorAll('.cup-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`cup-${cupId}`).classList.add('selected');
+        }
+
+        function submitAction() {
+            if(!selectedCup) return alert("Wybierz Cornet!");
+            let reason = ui.reasonInput.value.trim() || "...";
+            state.myAction = { cup: selectedCup, reason: reason };
+            ui.submitBtn.disabled = true; ui.reasonInput.disabled = true;
+            conn.send({ type: 'ACTION', data: state.myAction });
+            checkBothSubmitted();
+        }
+
+        function checkBothSubmitted() {
+            if(state.myAction && state.opAction) {
+                clearInterval(timerInterval);
+                setTimeout(showRevealPhase, 1000);
+            }
+        }
+
+        function showRevealPhase() {
+            hideAll(); ui.vote.classList.remove('hidden');
+            let pAction = state.myRole === 'poisoner' ? state.myAction : state.opAction;
+            let dAction = state.myRole === 'drinker' ? state.myAction : state.opAction;
+            let survived = (pAction.cup !== dAction.cup);
+            if(survived && state.myRole === 'drinker') state.myScore++;
+            else if(survived && state.myRole === 'poisoner') state.opScore++;
+
+            let resHtml = `<h3>WYNIK: ${survived ? 'Słodki Choco-Cornet! ☆' : 'WASABI! (´д｀)'}</h3>`;
+            resHtml += `<p>Wasabi było w: ${getLocalCupName(pAction.cup)}</p>`;
+            resHtml += `<p><strong>Twoja kartka:</strong> "${state.myAction.reason}"</p>`;
+            resHtml += `<p><strong>Jej kartka:</strong> "${state.opAction.reason}"</p>`;
+            ui.revealArea.innerHTML = resHtml;
+            updateStatus();
+            
+            chatTimeLeft = 180; ui.chatTimer.innerText = chatTimeLeft;
+            clearInterval(chatTimerInterval);
+            chatTimerInterval = setInterval(() => {
+                chatTimeLeft--; ui.chatTimer.innerText = chatTimeLeft;
+                if(chatTimeLeft <= 0) { clearInterval(chatTimerInterval); if(state.myVote === null) submitVote(false); }
+            }, 1000);
+        }
+
+        function getLocalCupName(cupId) { return cupId === (isHost ? 'host_side' : 'guest_side') ? "bliżej Ciebie" : "bliżej Przeciwnika"; }
+
+        function sendChat() {
+            let msg = ui.chatInput.value.trim();
+            if(!msg) return;
+            appendChat("Ty", msg, "msg-me");
+            conn.send({ type: 'CHAT', data: msg });
+            ui.chatInput.value = '';
+        }
+
+        function appendChat(sender, msg, cssClass) {
+            let p = document.createElement('p'); p.innerHTML = `<span class="${cssClass}">[${sender}]</span>: ${msg}`;
+            ui.chatHistory.appendChild(p); ui.chatHistory.scrollTop = ui.chatHistory.scrollHeight;
+        }
+
+        function submitVote(isYes) {
+            state.myVote = isYes;
+            ui.voteYes.classList.add('hidden'); ui.voteNo.classList.add('hidden');
+            ui.voteWait.classList.remove('hidden');
+            conn.send({ type: 'VOTE', data: isYes });
+            checkVotes();
+        }
+
+        function checkVotes() {
+            if(state.myVote !== null && state.opVote !== null) {
+                clearInterval(chatTimerInterval);
+                if(state.myVote && state.opVote) {
+                    appendChat("SYSTEM", "Zgodne kartki! Punkt dla pijącego.", "msg-sys");
+                    if(state.myRole === 'drinker') state.myScore++; else state.opScore++;
+                }
+                updateStatus();
+                setTimeout(() => {
+                    if(isHost) {
+                        if(state.round < state.maxRounds) { state.round++; start5SecCountdown(); conn.send({ type: 'NEXT_ROUND' }); }
+                        else { endGame(); conn.send({ type: 'END_GAME' }); }
+                    }
+                }, 5000);
+            }
+        }
+
+        function updateStatus() { ui.status.innerText = `[ POŁĄCZONO ] Wynik - Ty: ${state.myScore} | Rywalka: ${state.opScore}`; }
+
+        function endGame() {
+            hideAll(); ui.lobby.classList.remove('hidden');
+            ui.disconnectMsg.innerHTML = `<h2>KONIEC MATSURI</h2><p>Ty: ${state.myScore} | Rywalka: ${state.opScore}</p>`;
+            ui.disconnectMsg.classList.remove('hidden', 'error');
+        }
+
+        function hideAll() { 
+            [ui.lobby, ui.countdown, ui.game, ui.vote].forEach(el => el.classList.add('hidden')); 
+        }
     </script>
 </body>
 </html>
