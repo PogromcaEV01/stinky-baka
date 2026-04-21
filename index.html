@@ -547,3 +547,121 @@
 
         ui.revealArea.innerHTML = resHtml;
         updateStatus(); ui.voteWait.innerText = "Oczekiwanie na osąd współbrata...";
+        
+        chatTimeLeft = 180; ui.chatTimer.innerText = chatTimeLeft;
+        clearInterval(chatTimerInterval);
+        
+        chatTimerInterval = setInterval(() => {
+            chatTimeLeft--; ui.chatTimer.innerText = chatTimeLeft;
+            if(chatTimeLeft <= 0) {
+                clearInterval(chatTimerInterval);
+                if(state.myVote === null) submitVote(false);
+            }
+        }, 1000);
+    }
+
+    function getLocalCupName(cupId) { 
+        return cupId === (isHost ? 'host_side' : 'guest_side') ? "Kielich po Twojej stronie" : "Kielich u współbrata";
+    }
+
+    function sendChat() {
+        let msg = ui.chatInput.value.trim();
+        if(!msg) return;
+        appendChat("Ty", msg, "msg-me");
+        conn.send({ type: 'CHAT', data: msg });
+        ui.chatInput.value = '';
+    }
+
+    function appendChat(sender, msg, cssClass) {
+        let p = document.createElement('p'); p.innerHTML = `<span class="${cssClass}">[${sender}]</span>: ${msg}`;
+        ui.chatHistory.appendChild(p); ui.chatHistory.scrollTop = ui.chatHistory.scrollHeight;
+    }
+
+    ui.chatInput.addEventListener('keypress', function (e) { if (e.key === 'Enter') sendChat(); });
+
+    function submitVote(isYes) {
+        state.myVote = isYes;
+        ui.voteYes.classList.add('hidden'); ui.voteNo.classList.add('hidden');
+        ui.voteWait.classList.remove('hidden');
+        conn.send({ type: 'VOTE', data: isYes });
+        checkVotes();
+    }
+
+    function checkVotes() {
+        if(state.myVote !== null && state.opVote !== null) {
+            clearInterval(chatTimerInterval); ui.chatTimer.innerText = "0";
+            
+            if(state.myVote === true && state.opVote === true) {
+                appendChat("DUCH OGNIA", "Wasze umysły są jednością. Błogosławieństwo dla Adepta!", "msg-sys");
+                if(state.myRole === 'drinker') state.myScore++;
+                else state.opScore++;
+            } else appendChat("DUCH OGNIA", "Wasze dusze wędrują osobnymi ścieżkami. Brak łaski ognia.", "msg-sys");
+
+            updateStatus();
+
+            let waitTime = 10;
+            ui.voteWait.innerHTML = `Osąd dokonany. Następna próba za <strong id="next-phase-timer" style="color:#ffae42;">${waitTime}</strong>s...`;
+            
+            let waitIv = setInterval(() => {
+                waitTime--; let el = document.getElementById('next-phase-timer');
+                if(el) el.innerText = waitTime;
+
+                if(waitTime <= 0) {
+                    clearInterval(waitIv);
+                    if(isHost) {
+                        if(state.round < state.maxRounds) {
+                            state.round++; start5SecCountdown(); conn.send({ type: 'NEXT_ROUND' });
+                        } else { endGame(); conn.send({ type: 'END_GAME' }); }
+                    }
+                }
+            }, 1000);
+        }
+    }
+
+    function updateStatus() { 
+        ui.status.innerText = `[ KRĄG ZAMKNIĘTY ] PRZEBUDZENIA - Ty: ${state.myScore} | Współbrat: ${state.opScore}`; 
+    }
+
+    function endGame() {
+        hideAll(); ui.lobby.classList.remove('hidden');
+        let resHtml = `<h2>RYTUAŁ DOBIEGŁ KOŃCA</h2><p>Twoje sukcesy: ${state.myScore}</p><p>Sukcesy brata: ${state.opScore}</p>`;
+        
+        if(state.myScore > state.opScore) resHtml += "<h3 style='color:#d97725'>ZOSTAJESZ STARSZYM BRATEM ZGROMADZENIA!</h3>";
+        else if(state.myScore < state.opScore) resHtml += "<h3 style='color:#ff3333'>MUSISZ JESZCZE WIELE SIĘ NAUCZYĆ...</h3>";
+        else resHtml += "<h3 style='color:#ffae42'>WASZA MĄDROŚĆ JEST SOBIE RÓWNA.</h3>";
+
+        ui.disconnectMsg.innerHTML = resHtml;
+        ui.disconnectMsg.classList.remove('hidden', 'error');
+        if(conn) conn.close();
+    }
+
+    function checkServerStatus() {
+        const statusDiv = document.getElementById('server-status');
+        const pingPeer = new Peer(PEER_CONFIG);
+        
+        const timeout = setTimeout(() => {
+            statusDiv.innerHTML = 'Stan Kręgu: <strong style="color:#ff3333;">NIEAKTYWNY (Ognisko wygasło. Odśwież stronę)</strong>';
+            statusDiv.style.borderLeftColor = '#ff3333';
+            pingPeer.destroy();
+        }, 60000); 
+
+        pingPeer.on('open', () => {
+            clearTimeout(timeout);
+            statusDiv.innerHTML = 'Stan Kręgu: <strong style="color:#d97725;">AKTYWNY (Ogień płonie)</strong>';
+            statusDiv.style.borderLeftColor = '#d97725';
+            pingPeer.destroy(); 
+        });
+        
+        pingPeer.on('error', (err) => {
+            if(err.type === 'network' || err.type === 'server-error') {
+                clearTimeout(timeout);
+                statusDiv.innerHTML = 'Stan Kręgu: <strong style="color:#ff3333;">NIEAKTYWNY (Brak iskry w palenisku)</strong>';
+                statusDiv.style.borderLeftColor = '#ff3333';
+            }
+        });
+    }
+
+    window.addEventListener('load', checkServerStatus);
+</script>
+</body>
+</html>
